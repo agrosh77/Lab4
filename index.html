@@ -1,0 +1,238 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Ecuador Coffee Production</title>
+
+         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+           crossorigin=""/>
+
+         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+           crossorigin=""></script>
+		   
+		   <script type="text/javascript" src="data.js"></script>
+
+
+<style type="text/css">
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #e6e6e6;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+h1 {
+    margin: 0;
+    padding: 12px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+}
+
+#map {
+    height: 60vh;
+    margin: 0 8px 8px 8px;
+    border: 3px solid #333;
+    box-sizing: border-box;
+}
+
+.legend {
+    padding: 8px 10px;
+    font: 14px Arial, sans-serif;
+    background: white;
+    line-height: 20px;
+    color: #333;
+    border-radius: 4px;
+}
+
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.8;
+}
+
+
+</style>
+
+
+    </head>
+
+<body>
+    <h1>Coffee Production in Ecuador, 2025</h1>
+    <div id="map"></div>
+	
+	<div class="map-description">
+    <h2>About this map</h2>
+
+    <p>
+        This interactive choropleth map shows reported coffee production by province
+        in Ecuador in 2025. Provinces are shaded from pale yellow to dark blue, with
+        darker shades representing greater coffee production. Gray indicates that
+        no coffee production data were reported for that province. Users can select
+        individual provinces to view production totals, switch between topographic
+        and satellite basemaps, and display a NASA elevation layer for additional
+        geographic context.
+    </p>
+
+    <p>
+        <strong>Data source:</strong>
+        Coffee production data from Ecuador's Ministry of Agriculture and Livestock,
+        based on INEC ESPAC agricultural statistics.
+        <a href="https://sipa.agricultura.gob.ec/index.php/sipa-estadisticas/estadisticas-descargas/estadisticas-productivas"
+           target="_blank">
+            View source data
+        </a>.
+    </p>
+</div>
+
+        <script type="text/javascript">
+
+var map = L.map('map', {
+    center: [-1.5, -78.5],
+    zoom: 6
+});
+
+
+var topo = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    maxZoom: 19
+}).addTo(map);
+
+var imagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+});
+
+
+var coffeeProduction = {
+"Azuay": 309,
+"Bolívar": 0,
+"Cañar": 0,
+"Carchi": 16,
+"Chimborazo": 9,
+"Cotopaxi": 330,
+"El Oro": 71,
+"Esmeraldas": 40,
+"Guayas": 1,
+"Imbabura": 50,
+"Loja": 760,
+"Los Ríos": 40,
+"Manabí": 1602,
+"Morona Santiago": 50,
+"Napo": 8,
+"Orellana": 1268,
+"Pastaza": 62,
+"Pichincha": 646,
+"Santa Elena": 20,
+"Santo Domingo De Los Tsáchilas": 326,
+"Sucumbíos": 993,
+"Tungurahua": 0,
+"Zamora Chinchipe": 165,
+
+};
+
+data.features.forEach(function(feature) {
+    feature.properties.coffee_2025 = coffeeProduction[feature.properties.province];
+});
+
+function getColor(d) {
+    return d === undefined || d === null ? '#bdbdbd' :
+           d > 750 ? '#253494' :
+           d > 300 ? '#2c7fb8' :
+           d > 50  ? '#41b6c4' :
+           d > 0   ? '#a1dab4' :
+                     '#ffffcc';
+}			 
+
+function style(feature) {
+    return {
+        fillColor: getColor(feature.properties.coffee_2025),
+        weight: 2,
+        opacity: 1,
+        color: 'gray',
+        fillOpacity: 0.8
+    };
+}
+
+function onEachFeature(feature, layer) {
+    var province = feature.properties.province;
+    var coffee = feature.properties.coffee_2025;
+    var coffeeText;
+
+    if (coffee === undefined || coffee === null) {
+        coffeeText = 'No reported coffee production data';
+    } else {
+        coffeeText = coffee.toLocaleString() + ' tons';
+    }
+
+    var popupContent =
+        '<strong>' + province + '</strong><br>' +
+        'Coffee Production, 2025: ' + coffeeText;
+
+    layer.bindPopup(popupContent);
+}
+
+var provinces = L.geoJson(data, {
+    style: style,
+    onEachFeature: onEachFeature
+}).addTo(map);
+
+
+var legend = L.control({position: 'bottomright'});
+
+legend.onAdd = function(map) {
+    var div = L.DomUtil.create('div', 'legend');
+
+div.innerHTML =
+    '<strong>Coffee Production (tons)</strong><br>' +
+    '<i style="background:#ffffcc"></i> 0<br>' +
+    '<i style="background:#a1dab4"></i> 1–50<br>' +
+    '<i style="background:#41b6c4"></i> 51–300<br>' +
+    '<i style="background:#2c7fb8"></i> 301–750<br>' +
+    '<i style="background:#253494"></i> 751–1,602<br>' +
+    '<i style="background:#bdbdbd"></i> No data';
+
+    return div;
+};
+
+legend.addTo(map);
+
+var elevation = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi?', {
+    layers: 'ASTER_GDEM_Color_Shaded_Relief',
+    format: 'image/png',
+    transparent: true,
+    opacity: 0.6,
+    attribution: 'Imagery courtesy of NASA EOSDIS GIBS'
+});
+
+var baseMaps = {
+    "Street Map": topo,
+    "Satellite Imagery": imagery
+};
+
+var overlayMaps = {
+    "Coffee Production": provinces,
+    "Elevation": elevation
+};
+
+L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+map.on('overlayremove', function(eventLayer) {
+    if (eventLayer.name === 'Coffee Production') {
+        map.removeControl(legend);
+    }
+});
+
+map.on('overlayadd', function(eventLayer) {
+    if (eventLayer.name === 'Coffee Production') {
+        legend.addTo(map);
+    }
+});
+
+        </script>
+   </body>
+</html>
